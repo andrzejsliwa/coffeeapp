@@ -41,6 +41,12 @@ getTimestamp = ->
   padTwo(date.getMinutes() + 1) +
   padTwo(date.getSeconds() + 1)
 
+printOutput = (stdout, stderr) ->
+  console.log(stdout) if stdout.length > 0
+  console.log(stderr) if stderr.length > 0
+
+
+
 processRecursive = (currentDir, destination) ->
   fileList = readDir(currentDir)
   for fileName in fileList
@@ -56,7 +62,11 @@ processRecursive = (currentDir, destination) ->
         writeFile(destFilePath.replace(/\.coffee$/, '.js'),
           coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8')
       else
-        writeFile(destFilePath, readFile(filePath, encoding = 'utf8'), encoding = 'utf8')
+        exec('cp ' + filePath + ' ' + destFilePath, (error, stdout, stderr) ->
+          printOutput(stdout, stderr)
+          if (error != null)
+            console.log('exec error: ' + error)
+        )
 
 grindCoffee = ->
   releasesDir = '.releases'
@@ -68,12 +78,13 @@ grindCoffee = ->
   processRecursive('.', releasePath)
   process.chdir(releasePath)
   exec('couchapp push', (error, stdout, stderr) ->
-    console.log(stdout)
-    console.log(stderr)
+    printOutput(stdout, stderr)
     if (error != null)
       console.log('exec error: ' + error)
   )
   process.cwd()
+
+
 
 
 if 'push' in process.argv
@@ -84,8 +95,7 @@ else
     options += " " + opt
 
   exec('couchapp' + options, (error, stdout, stderr) ->
-    console.log(stdout)
-    console.log(stderr)
+    printOutput(stdout, stderr)
     if (error != null)
       console.log('exec error: ' + error)
   )
