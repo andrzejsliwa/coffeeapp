@@ -86,13 +86,17 @@ grindCoffee = ->
 
 
 
-
+console.log("CoffeeApp (v0.0.2) - simple coffee-script wrapper for CouchApp (http://couchapp.org)")
+console.log("http://github.com/andrzejsliwa/coffeeapp\n")
 if 'push' in process.argv
+  console.log("Wrapping 'push' of couchapp")
   grindCoffee()
 else
   options = ''
   for opt in process.argv
     options += " " + opt
+
+  console.log("Calling couchapp")
 
   exec('couchapp' + options, (error, stdout, stderr) ->
     printOutput(stdout, stderr)
