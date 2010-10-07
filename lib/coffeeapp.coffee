@@ -27,80 +27,94 @@ getStats = require('fs').statSync
 coffeeCompile = require('coffee-script').compile
 exec  = require('child_process').exec
 
+#### Helper Methods
+
+# Zero padding for format '0x'
 padTwo = (number) ->
   result = if number < 10 then '0' else ''
   result + String(number)
 
-
+# Timestamp string based on current date
 getTimestamp = ->
-  date = new Date()
-  date.getFullYear() +
-  padTwo(date.getMonth() + 1) +
-  padTwo(date.getDate()) +
-  padTwo(date.getHours() + 1) +
-  padTwo(date.getMinutes() + 1) +
-  padTwo(date.getSeconds() + 1)
+  date = new Date
+  date.getFullYear() + padTwo(date.getMonth() + 1) +
+  padTwo(date.getDate()) + padTwo(date.getHours() + 1) +
+  padTwo(date.getMinutes() + 1) + padTwo(date.getSeconds() + 1)
 
+# Display outputs if presents
 printOutput = (stdout, stderr) ->
-  console.log(stdout) if stdout.length > 0
-  console.log(stderr) if stderr.length > 0
+  console.log stdout if stdout.length > 0
+  console.log stderr if stderr.length > 0
 
+#### Main Methods
 
-
+# Process directory recursivly, normal files
+# are copied, directories are recreated and .coffee
+# files are "compiled" to javascript
 processRecursive = (currentDir, destination) ->
-  fileList = readDir(currentDir)
+  fileList = readDir currentDir
   for fileName in fileList
-    filePath = joinPath(currentDir, fileName)
-    destFilePath = joinPath(destination, filePath)
+    filePath = joinPath currentDir, fileName
+    destFilePath = joinPath destination, filePath
     if getStats(filePath).isDirectory()
       unless fileName[0] == '.'
-        mkDir(destFilePath, 0700)
-        processRecursive(filePath, destination)
+        mkDir destFilePath, 0700
+        processRecursive filePath, destination
     else
+      # if it's coffee-script file
       if extName(filePath) == '.coffee'
-        console.log('processing ' + filePath + '...')
-        writeFile(destFilePath.replace(/\.coffee$/, '.js'),
-          coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8')
+        console.log 'processing ' + filePath + '...'
+        writeFile destFilePath.replace(/\.coffee$/, '.js'),
+          coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
+      # if it's other files
       else
-        exec('cp ' + filePath + ' ' + destFilePath, (error, stdout, stderr) ->
+        exec 'cp ' + filePath + ' ' + destFilePath, (error, stdout, stderr) ->
           printOutput(stdout, stderr)
           if (error != null)
             console.log('exec error: ' + error)
-        )
 
+#### Grinding of coffee
+
+# Starts wrapping push command of couchapps
+#
+# each deploy is moved to .releases/[timestamp] directory
+# with processing coffee-script files and then pushed from
+# deploy directory.
 grindCoffee = ->
   releasesDir = '.releases'
-  unless exist(releasesDir)
+  unless exist releasesDir
     console.log 'initialize ' + releasesDir + ' directory'
-    mkDir(releasesDir, 0700)
-  releasePath = joinPath(releasesDir, getTimestamp())
-  mkDir(releasePath, 0700)
-  processRecursive('.', releasePath)
-  process.chdir(releasePath)
-  exec('couchapp push', (error, stdout, stderr) ->
-    printOutput(stdout, stderr)
-    if (error != null)
-      console.log('exec error: ' + error)
-  )
+    mkDir releasesDir, 0700
+  releasePath = joinPath releasesDir, getTimestamp()
+  mkDir releasePath, 0700
+  processRecursive '.', releasePath
+  process.chdir releasePath
+  exec 'couchapp push', (error, stdout, stderr) ->
+    printOutput stdout, stderr
+    if error != null
+      console.log 'exec error: ' + error
   process.cwd()
 
+#### Well, let's dance baby
 
+# Shows greatings ...
+console.log 'CoffeeApp (v0.0.3) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
-console.log("CoffeeApp (v0.0.2) - simple coffee-script wrapper for CouchApp (http://couchapp.org)")
-console.log("http://github.com/andrzejsliwa/coffeeapp\n")
+# only push option is wrapped
 if 'push' in process.argv
-  console.log("Wrapping 'push' of couchapp")
+  console.log "Wrapping 'push' of couchapp"
+  # lets do it
   grindCoffee()
 else
+  # convert options back to string
   options = ''
   for opt in process.argv
     options += " " + opt
 
-  console.log("Calling couchapp")
-
-  exec('couchapp' + options, (error, stdout, stderr) ->
-    printOutput(stdout, stderr)
-    if (error != null)
-      console.log('exec error: ' + error)
-  )
-
+  console.log "Calling couchapp"
+  # execute couchapp command
+  exec 'couchapp' + options, (error, stdout, stderr) ->
+    printOutput stdout, stderr
+    if error != null
+      console.log 'exec error: ' + error

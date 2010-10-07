@@ -1,5 +1,5 @@
 { "name" : "coffeeapp"
-, "version" : "0.0.2"
+, "version" : "0.0.3"
 , "author" : "Andrzej Sliwa <andrzej.sliwa@i-tool.eu> (http://andrzejsliwa.com)"
 , "main" : "./lib/coffeeapp.coffee"
 , "bin" : { "coffeeapp" : "./lib/coffeeapp.coffee" }

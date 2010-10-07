@@ -25,12 +25,10 @@ Or, get the code, and `npm link` in the code root.
 
 ### Description
 
-    CoffeeApp is a simple wrapper for couchapp command.
-    CoffeeApp overide normal push behavoir, by adding .releases directory which contain deployment snapshots
-    While files are copied to release snapshot... coffee-script files (.coffee) are converted on the fly to
-    java-script (.js) files.
+    CoffeeApp is a simple wrapper for couchapp command. CoffeeApp override normal push behavoir, by adding '.releases' directory which contain deployment snapshots (timestamped). While files are copied to release snapshot... coffee-script files (.coffee) are converted on the fly to java-script (.js) files.
 
-    .releases directory should be added to .gitignore or .hgignore or whatever you have using to prevent versioning.
+    '.releases' directory should be added to .gitignore or .hgignore or whatever you have using to prevent versioning.
+
 
 
 ### Author
