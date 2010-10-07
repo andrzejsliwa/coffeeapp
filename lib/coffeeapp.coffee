@@ -61,8 +61,8 @@ processRecursive = (currentDir, destination) ->
         mkDir destFilePath, 0700
         processRecursive filePath, destination
     else
-      # if it's coffee-script file
-      if extName(filePath) == '.coffee'
+      # if it's coffee-script file and isn't in _attachments (to using it on client side.)
+      if extName(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
         console.log 'processing ' + filePath + '...'
         writeFile destFilePath.replace(/\.coffee$/, '.js'),
           coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
@@ -98,7 +98,7 @@ grindCoffee = ->
 #### Well, let's dance baby
 
 # Shows greatings ...
-console.log 'CoffeeApp (v0.0.3) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+console.log 'CoffeeApp (v0.0.4) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
 console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 # only push option is wrapped
