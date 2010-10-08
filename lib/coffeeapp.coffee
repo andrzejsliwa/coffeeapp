@@ -52,6 +52,8 @@ commandWraps = [
 
 ]
 
+# fast hack.
+isError = false
 
 #### File templates
 
@@ -89,7 +91,7 @@ filterCoffee = '''
 
 showGreatings = ->
 # Shows greatings ...
-  console.log 'CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  console.log 'CoffeeApp (v1.0.1) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
   console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 
@@ -111,6 +113,7 @@ printOutput = (error, stdout, stderr) ->
   console.log stderr if stderr.length > 0
   if error != null
     console.log "exec error: #{error}"
+    isError = true
 
 #### Main Methods
 
@@ -134,7 +137,8 @@ processRecursive = (currentDir, destination) ->
           writeFile destFilePath.replace(/\.coffee$/, '.js'),
             coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
         catch error
-          console.log "Compilation Error of #{destFilePath} : #{error.message}\n"
+          console.log "Compilation Error: #{error.message}\n"
+          isError = true
       # if it's other files
       else
         exec "cp #{filePath} #{destFilePath}", printOutput
@@ -157,10 +161,11 @@ grindCoffee = ->
   console.log "preparing #{releasePath} release..."
   mkDir releasePath, 0700
   processRecursive '.', releasePath
-  process.chdir releasePath
-  console.log "done."
-  exec 'couchapp push', printOutput
-  process.cwd()
+  unless isError
+    process.chdir releasePath
+    console.log "done."
+    exec 'couchapp push', printOutput
+    process.cwd()
 
 # Shows available options.
 help = ->
