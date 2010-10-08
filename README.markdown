@@ -60,7 +60,7 @@ with errors, all generated files have in content '...' which should be replaced 
 
 using coffee generators
 
-    $ coffeeapp cgenerate view tview
+    $ coffeeapp cgenerate view myview
 
     CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
