@@ -27,7 +27,71 @@ getStats = require('fs').statSync
 coffeeCompile = require('coffee-script').compile
 exec  = require('child_process').exec
 
+
+#### Command wrapping configruation.
+
+
+commandWraps = [
+  {
+    name: 'push',
+    type: 'before',
+    callback: -> grindCoffee()
+  },
+  {
+    name: 'help',
+    type: 'after',
+    desc: '     show this message'
+    callback: -> help()
+  },
+  {
+    name: 'cgenerate',
+    type: 'before',
+    desc: '[ view | list | show | filter ] generate .coffee versions',
+    callback: -> generate()
+  }
+
+]
+
+
+#### File templates
+
+# map function
+mapCoffee = '''
+(doc) ->
+  ...
+'''
+
+# reduce function
+reduceCoffee = '''
+(keys, values, rereduce) ->
+  ...
+'''
+
+# list function
+listCoffee = '''
+(head, req) ->
+  ...
+'''
+
+# show function
+showCoffee = '''
+(doc, req) ->
+  ...
+'''
+
+# filter function
+filterCoffee = '''
+(doc, req) ->
+  ...
+'''
+
 #### Helper Methods
+
+showGreatings = ->
+# Shows greatings ...
+  console.log 'CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
+
 
 # Zero padding for format '0x'
 padTwo = (number) ->
@@ -48,7 +112,6 @@ printOutput = (error, stdout, stderr) ->
   if error != null
     console.log "exec error: #{error}"
 
-
 #### Main Methods
 
 # Process directory recursivly, normal files
@@ -67,8 +130,11 @@ processRecursive = (currentDir, destination) ->
       # if it's coffee-script file and isn't in _attachments (to using it on client side.)
       if extName(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
         console.log " * processing #{filePath}..."
-        writeFile destFilePath.replace(/\.coffee$/, '.js'),
-          coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
+        try
+          writeFile destFilePath.replace(/\.coffee$/, '.js'),
+            coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
+        catch error
+          console.log "Compilation Error of #{destFilePath} : #{error.message}\n"
       # if it's other files
       else
         exec "cp #{filePath} #{destFilePath}", printOutput
@@ -82,6 +148,7 @@ processRecursive = (currentDir, destination) ->
 # with processing coffee-script files and then pushed from
 # deploy directory.
 grindCoffee = ->
+  console.log "Wrapping 'push' of couchapp"
   releasesDir = '.releases'
   unless exist releasesDir
     console.log "initialize #{releasesDir} directory"
@@ -95,20 +162,71 @@ grindCoffee = ->
   exec 'couchapp push', printOutput
   process.cwd()
 
+# Shows available options.
+help = ->
+  console.log "Wrapping 'help' of couchapp\n"
+  showGreatings()
+  for command in commandWraps
+    if command.desc
+      console.log "#{command.name}        #{command.desc}"
+
+# Create file verbosly
+createFile = (path, template) ->
+  console.log " * creating #{path}..."
+  writeFile path, template, encoding = 'utf8'
+
+
+# Runs Generator handling
+generate = ->
+  generator = process.argv[1]
+  unless generator
+    console.log 'missing name of generator - [ view | list | show | filter ]'
+    return
+  console.log "Running CoffeeApp '#{generator}' generator..."
+  name = process.argv[2]
+  unless name
+    console.log 'missing name of element'
+    return
+  switch generator
+    when 'view'
+      view_path = "views/#{name}"
+      mkDir view_path, 0700
+      createFile joinPath(view_path, "map.coffee"), mapCoffee
+      createFile joinPath(view_path, "reduce.coffee"), reduceCoffee
+    when 'show'
+      createFile joinPath('shows', "#{name}.coffee"), showCoffee
+    when 'list'
+      createFile joinPath('lists', "#{name}.coffee"), listCoffee
+    when 'filter'
+      createFile joinPath('filters', "#{name}.coffee"), filterCoffee
+    else
+      console.log 'unknown generator'
+  console.log 'done.'
+
+
+
+# Handle wrapping
+handle = (type) ->
+  handled = false
+  for cmd in commandWraps
+    if cmd.type == type && cmd.name == process.argv[0]
+      handled = true
+      cmd.callback()
+  handled
+
+# Handling shortcuts
+handleBefore = -> handle('before')
+handleAfter = -> handle('after')
+
+
+
 #### Well, let's dance baby
-
-# Shows greatings ...
-console.log 'CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
-console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
-
-# only push option is wrapped
-if 'push' in process.argv
-  console.log "Wrapping 'push' of couchapp"
-  # lets do it
-  grindCoffee()
-else
+showGreatings()
+unless handleBefore()
   # convert options back to string
   options = process.argv.join(' ')
   console.log "Calling couchapp"
   # execute couchapp command
-  exec "couchapp #{options}", printOutput
+  exec "couchapp #{options}", (error, stdout, stderr) ->
+    printOutput(error, stdout, stderr)
+    handleAfter()
