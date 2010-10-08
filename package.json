@@ -8,5 +8,6 @@
     "type": "git",
     "url": "git://github.com/andrzejsliwa/coffeeapp.git"
   }
+, "bugs" : { "web" : "http://github.com/andrzejsliwa/coffeeapp/issues" }
 , "licenses" : [ { "type" : "Apache License, Version 2.0", "url" : "http://github.com/andrzejsliwa/coffeeapp/raw/master/LICENSE" }]
 }
