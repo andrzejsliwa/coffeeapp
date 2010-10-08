@@ -32,7 +32,7 @@ exec  = require('child_process').exec
 # Zero padding for format '0x'
 padTwo = (number) ->
   result = if number < 10 then '0' else ''
-  result + String(number)
+  "#{result}#{number}"
 
 # Timestamp string based on current date
 getTimestamp = ->
@@ -42,9 +42,12 @@ getTimestamp = ->
   padTwo(date.getMinutes() + 1) + padTwo(date.getSeconds() + 1)
 
 # Display outputs if presents
-printOutput = (stdout, stderr) ->
+printOutput = (error, stdout, stderr) ->
   console.log stdout if stdout.length > 0
   console.log stderr if stderr.length > 0
+  if error != null
+    console.log "exec error: #{error}"
+
 
 #### Main Methods
 
@@ -63,15 +66,13 @@ processRecursive = (currentDir, destination) ->
     else
       # if it's coffee-script file and isn't in _attachments (to using it on client side.)
       if extName(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
-        console.log 'processing ' + filePath + '...'
+        console.log " * processing #{filePath}..."
         writeFile destFilePath.replace(/\.coffee$/, '.js'),
           coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
       # if it's other files
       else
-        exec 'cp ' + filePath + ' ' + destFilePath, (error, stdout, stderr) ->
-          printOutput(stdout, stderr)
-          if (error != null)
-            console.log('exec error: ' + error)
+        exec "cp #{filePath} #{destFilePath}", printOutput
+
 
 #### Grinding of coffee
 
@@ -83,22 +84,21 @@ processRecursive = (currentDir, destination) ->
 grindCoffee = ->
   releasesDir = '.releases'
   unless exist releasesDir
-    console.log 'initialize ' + releasesDir + ' directory'
+    console.log "initialize #{releasesDir} directory"
     mkDir releasesDir, 0700
   releasePath = joinPath releasesDir, getTimestamp()
+  console.log "preparing #{releasePath} release..."
   mkDir releasePath, 0700
   processRecursive '.', releasePath
   process.chdir releasePath
-  exec 'couchapp push', (error, stdout, stderr) ->
-    printOutput stdout, stderr
-    if error != null
-      console.log 'exec error: ' + error
+  console.log "done."
+  exec 'couchapp push', printOutput
   process.cwd()
 
 #### Well, let's dance baby
 
 # Shows greatings ...
-console.log 'CoffeeApp (v0.0.4) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+console.log 'CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
 console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 # only push option is wrapped
@@ -108,13 +108,7 @@ if 'push' in process.argv
   grindCoffee()
 else
   # convert options back to string
-  options = ''
-  for opt in process.argv
-    options += " " + opt
-
+  options = process.argv.join(' ')
   console.log "Calling couchapp"
   # execute couchapp command
-  exec 'couchapp' + options, (error, stdout, stderr) ->
-    printOutput stdout, stderr
-    if error != null
-      console.log 'exec error: ' + error
+  exec "couchapp #{options}", printOutput
