@@ -52,11 +52,8 @@ with errors, all generated files have in content '...' which should be replaced 
      * processing filters/filter.coffee...
 
      * processing views/coffewview/reduce.coffee...
-    Compilation Error of .releases/20101008172605/views/myview/reduce.coffee : Parse error on line 1: Unexpected '.'
+    Compilation Error: Parse error on line 1: Unexpected '.'
 
-    done.
-    2010-10-08 20:25:04 [INFO] Visit your CouchApp here:
-    http://127.0.0.1:5984/tutorial/_design/hello/index.html
 
 using coffee generators
 
@@ -71,6 +68,7 @@ using coffee generators
     done.
 
 using help command:
+
     $ coffeeapp help
 
     ...
