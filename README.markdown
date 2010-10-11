@@ -92,7 +92,12 @@ are converted on the fly to java-script (.js) files.
 
 '.releases' directory should be added to .gitignore or .hgignore or whatever you have using to prevent versioning.
 
+### TODO
 
+* move templates to files
+* add destoy command (remove generated files)
+* add coffeescript project initialization(install compressed coffeescript for frontend, add gitignores and etc..)
+* add application testing stuff - still open how to do that
 
 ### Author
 

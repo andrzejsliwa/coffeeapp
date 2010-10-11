@@ -135,7 +135,7 @@ processRecursive = (currentDir, destination) ->
         console.log " * processing #{filePath}..."
         try
           writeFile destFilePath.replace(/\.coffee$/, '.js'),
-            coffeeCompile(readFile(filePath, encoding = 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), encoding = 'utf8'
+            coffeeCompile(readFile(filePath, 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), 'utf8'
         catch error
           console.log "Compilation Error: #{error.message}\n"
           isError = true
