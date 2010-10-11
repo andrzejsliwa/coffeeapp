@@ -28,7 +28,7 @@ coffeeCompile = require('coffee-script').compile
 exec  = require('child_process').exec
 
 
-#### Command wrapping configruation.
+#### Command wrapping configuration.
 
 
 commandWraps = [
