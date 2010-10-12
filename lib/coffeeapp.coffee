@@ -16,21 +16,15 @@
 # limitations under the License.
 #
 
-exist = require('path').existsSync
-joinPath = require('path').join
-extName = require('path').extname
-mkDir = require('fs').mkdirSync
-readDir = require('fs').readdirSync
-writeFile = require('fs').writeFileSync
-readFile = require('fs').readFileSync
-getStats = require('fs').statSync
-coffeeCompile = require('coffee-script').compile
-exec  = require('child_process').exec
 
+# fast way to imports using pattern matching
+{existsSync, join, extname} = require 'path'
+{mkdirSync, readdirSync, writeFileSync, readFileSync, statSync} = require 'fs'
+{compile} = require 'coffee-script'
+{exec}  = require 'child_process'
+{log} = console
 
 #### Command wrapping configuration.
-
-
 commandWraps = [
   {
     name: 'push',
@@ -40,7 +34,7 @@ commandWraps = [
   {
     name: 'help',
     type: 'after',
-    desc: '     show this message'
+    desc: '     show this message',
     callback: -> help()
   },
   {
@@ -48,12 +42,15 @@ commandWraps = [
     type: 'before',
     desc: '[ view | list | show | filter ] generate .coffee versions',
     callback: -> generate()
+  },
+  {
+    name: 'destroy',
+    type: 'before',
+    desc: '  [ view | list | show | filter ] destroy (remove directory/files).',
+    callback: -> destroy()
   }
 
 ]
-
-# fast hack.
-isError = false
 
 #### File templates
 
@@ -91,8 +88,8 @@ filterCoffee = '''
 
 showGreatings = ->
 # Shows greatings ...
-  console.log 'CoffeeApp (v1.0.1) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
-  console.log 'http://github.com/andrzejsliwa/coffeeapp\n'
+  log 'CoffeeApp (v1.0.2) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 
 # Zero padding for format '0x'
@@ -109,11 +106,10 @@ getTimestamp = ->
 
 # Display outputs if presents
 printOutput = (error, stdout, stderr) ->
-  console.log stdout if stdout.length > 0
-  console.log stderr if stderr.length > 0
+  log stdout if stdout && stdout.length > 0
+  log stderr if stderr && stderr.length > 0
   if error != null
-    console.log "exec error: #{error}"
-    isError = true
+    log "exec error: #{error}"
 
 #### Main Methods
 
@@ -121,27 +117,30 @@ printOutput = (error, stdout, stderr) ->
 # are copied, directories are recreated and .coffee
 # files are "compiled" to javascript
 processRecursive = (currentDir, destination) ->
-  fileList = readDir currentDir
+  fileList = readdirSync currentDir
+  isError = false
   for fileName in fileList
-    filePath = joinPath currentDir, fileName
-    destFilePath = joinPath destination, filePath
-    if getStats(filePath).isDirectory()
+    filePath = join currentDir, fileName
+    destFilePath = join destination, filePath
+    if statSync(filePath).isDirectory()
       unless fileName[0] == '.'
-        mkDir destFilePath, 0700
-        processRecursive filePath, destination
+        mkdirSync destFilePath, 0700
+        isError = true if processRecursive filePath, destination
     else
       # if it's coffee-script file and isn't in _attachments (to using it on client side.)
-      if extName(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
-        console.log " * processing #{filePath}..."
+      if extname(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
+        log " * processing #{filePath}..."
         try
-          writeFile destFilePath.replace(/\.coffee$/, '.js'),
-            coffeeCompile(readFile(filePath, 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), 'utf8'
+          writeFileSync destFilePath.replace(/\.coffee$/, '.js'),
+            compile(readFileSync(filePath, 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), 'utf8'
         catch error
-          console.log "Compilation Error: #{error.message}\n"
+          log "Compilation Error: #{error.message}\n"
           isError = true
       # if it's other files
       else
         exec "cp #{filePath} #{destFilePath}", printOutput
+  !isError
+
 
 
 #### Grinding of coffee
@@ -152,66 +151,122 @@ processRecursive = (currentDir, destination) ->
 # with processing coffee-script files and then pushed from
 # deploy directory.
 grindCoffee = ->
-  console.log "Wrapping 'push' of couchapp"
+  log "Wrapping 'push' of couchapp"
   releasesDir = '.releases'
-  unless exist releasesDir
-    console.log "initialize #{releasesDir} directory"
-    mkDir releasesDir, 0700
-  releasePath = joinPath releasesDir, getTimestamp()
-  console.log "preparing #{releasePath} release..."
-  mkDir releasePath, 0700
-  processRecursive '.', releasePath
-  unless isError
+  unless existsSync releasesDir
+    log "initialize #{releasesDir} directory"
+    mkdirSync releasesDir, 0700
+  releasePath = join releasesDir, getTimestamp()
+  log "preparing #{releasePath} release..."
+  mkdirSync releasePath, 0700
+  if processRecursive '.', releasePath
     process.chdir releasePath
-    console.log "done."
+    log "done."
     exec 'couchapp push', printOutput
     process.cwd()
 
 # Shows available options.
 help = ->
-  console.log "Wrapping 'help' of couchapp\n"
+  log "Wrapping 'help' of couchapp\n"
   showGreatings()
   for command in commandWraps
     if command.desc
-      console.log "#{command.name}        #{command.desc}"
+      log "#{command.name}        #{command.desc}"
 
-# Create file verbosly
-createFile = (path, template) ->
-  console.log " * creating #{path}..."
-  writeFile path, template, encoding = 'utf8'
+# generate file from template verbosly
+generateFile = (path, template) ->
+  log " * creating #{path}..."
+  if existsSync path
+    log "File #{path} already exist!"
+  else
+    writeFileSync path, template, 'utf8'
 
 
-# Runs Generator handling
-generate = ->
+# cgenerate and destory handling
+generate = -> operateOn('generate')
+destroy = -> operateOn('destroy')
+
+# common handling for cgenerate/destroy
+operateOn = (command) ->
   generator = process.argv[1]
   unless generator
-    console.log 'missing name of generator - [ view | list | show | filter ]'
+    log "missing name of #{command} - [ view | list | show | filter ]"
     return
-  console.log "Running CoffeeApp '#{generator}' generator..."
   name = process.argv[2]
   unless name
-    console.log 'missing name of element'
+    log 'missing name of element'
     return
-  switch generator
+  log "Running CoffeeApp #{command} of #{generator} - '#{name}'..."
+  fun = switch generator
     when 'view'
-      view_path = "views/#{name}"
-      mkDir view_path, 0700
-      createFile joinPath(view_path, "map.coffee"), mapCoffee
-      createFile joinPath(view_path, "reduce.coffee"), reduceCoffee
+      handleView
     when 'show'
-      createFile joinPath('shows', "#{name}.coffee"), showCoffee
+      handleShow
     when 'list'
-      createFile joinPath('lists', "#{name}.coffee"), listCoffee
+      handleList
     when 'filter'
-      createFile joinPath('filters', "#{name}.coffee"), filterCoffee
+      handleFilter
     else
-      console.log 'unknown generator'
-  console.log 'done.'
+      (_, _) -> log "unknown #{command}"
+  log 'done.' if fun(command, name)
 
+# handling view generate/destroy
+handleView = (method, name) ->
+  unless existsSync 'views'
+    mkdirSync 'views', 0700
 
+  viewDirPath = "views/#{name}"
+  [mapFilePath, reduceFilePath] = [join(viewDirPath, "map.coffee"), join(viewDirPath, "reduce.coffee")]
+  switch method
+    when 'generate'
+      if existsSync viewDirPath
+        log "directory '#{viewDirPath}' already exist!"
+        false
+      else
+        mkdirSync viewDirPath, 0700
+        generateFile mapFilePath, mapCoffee
+        generateFile reduceFilePath, reduceCoffee
+        true
+    when 'destroy'
+      if existsSync viewDirPath
+        exec "rm -r #{viewDirPath}", printOutput
+        true
+      else
+        log "there is no view '#{name}' ('#{viewDirPath}') !!!"
+        false
+    else
+      throw 'unknown method'
+
+# handling generic generate/destroy of file
+handleFile = (method, folder, template, name) ->
+  filePathCoffee = join folder, "#{name}.coffee"
+  filePathJS = join folder, "#{name}.js"
+  switch method
+    when 'generate'
+      unless existsSync folder
+        mkdirSync folder, 0700
+      generateFile filePath, template
+      true
+    when 'destroy'
+      if existsSync filePath
+        exec "rm #{filePath}", printOutput
+        true
+      else if existsSync filePathJS
+        exec "rm #{filePathJS}", printOutput
+        true
+      else
+        log "there is no '#{name}' ('#{filePath}') !!!"
+        false
+    else
+      throw 'unknown method'
+
+# shortcuts of handling generate/destroy
+handleShow = (method, name) -> handleFile(method, 'shows', showCoffee, name)
+handleList = (method, name) -> handleFile(method, 'lists', listCoffee, name)
+handleFilter = (method, name) -> handleFile(method, 'filters', filterCoffee, name)
 
 # Handle wrapping
-handle = (type) ->
+handleCommand = (type) ->
   handled = false
   for cmd in commandWraps
     if cmd.type == type && cmd.name == process.argv[0]
@@ -219,19 +274,15 @@ handle = (type) ->
       cmd.callback()
   handled
 
-# Handling shortcuts
-handleBefore = -> handle('before')
-handleAfter = -> handle('after')
-
-
 
 #### Well, let's dance baby
 showGreatings()
-unless handleBefore()
+unless handleCommand('before')
   # convert options back to string
   options = process.argv.join(' ')
-  console.log "Calling couchapp"
+  log "Calling couchapp"
   # execute couchapp command
   exec "couchapp #{options}", (error, stdout, stderr) ->
     printOutput(error, stdout, stderr)
-    handleAfter()
+    handleCommand('after')
+
