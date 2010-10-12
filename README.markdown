@@ -29,7 +29,7 @@ without compilation errors:
 
     $ coffeeapp push
 
-    CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     Wrapping 'push' of couchapp
@@ -44,7 +44,7 @@ with errors, all generated files have in content '...' which should be replaced 
 
     $ coffeeapp push
 
-    CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     Wrapping 'push' of couchapp
@@ -59,7 +59,7 @@ using coffee generators
 
     $ coffeeapp cgenerate view myview
 
-    CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     Running CoffeeApp 'view' generator...
@@ -77,12 +77,12 @@ using help command:
 
     Wrapping 'help' of couchapp
 
-    CoffeeApp (v0.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     help             show this message
     cgenerate        [ view | list | show | filter ] generate coffee-script versions of files (instead of standard 'generate')
-
+    destroy          [ view | list | show | filter ] destroy (remove directory/files).
 
 ### Description
 
