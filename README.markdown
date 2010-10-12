@@ -4,11 +4,11 @@
 
 Prerequisites: requires Node.js (<http://nodejs.org/>) and Npm (<http://npmjs.org/>)
 
-Get CoffeeApp:
+### Get CoffeeApp:
 
     git clone git://github.com/andrzejsliwa/coffeeapp.git
 
-Build CoffeeApp:
+### Build CoffeeApp:
 
     cd coffeeapp && make && sudo make install
 
