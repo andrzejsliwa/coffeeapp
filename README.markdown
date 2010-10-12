@@ -2,13 +2,13 @@
 
 ### Installing
 
-Prerequisites: CoffeeScript requires Node.js (<http://nodejs.org/>), Npm (http://npmjs.org/)
+Prerequisites: requires Node.js (<http://nodejs.org/>) and Npm (<http://npmjs.org/>)
 
 Get CoffeeApp:
 
     git clone git://github.com/andrzejsliwa/coffeeapp.git
 
-Build Jake:
+Build CoffeeApp:
 
     cd coffeeapp && make && sudo make install
 
