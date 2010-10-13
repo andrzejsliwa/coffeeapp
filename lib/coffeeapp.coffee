@@ -47,19 +47,19 @@ commandWraps = [
   {
     name: 'destroy',
     type: 'before',
-    desc: '  [ view | list | show | filter ] destroy (remove directory/files).',
+    desc: '  [ view | list | show | filter ] destroy (remove directory/files also .js files).',
     callback: -> destroy()
   },
   {
     name: 'prepare',
     type: 'before',
-    desc: '  prepare',
+    desc: '  prepare (.gitignore...)',
     callback: -> prepare()
   },
   {
     name: 'clean',
     type: 'before',
-    desc: '  remove .releases directory'
+    desc: '    remove .releases directory'
     callback: -> clean()
   }
 ]

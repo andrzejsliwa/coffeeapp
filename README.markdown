@@ -2,7 +2,7 @@
 
 ### Installing
 
-Prerequisites: requires Node.js (<http://nodejs.org/>) and Npm (<http://npmjs.org/>)
+Prerequisites: requires Node.js ver. v0.3.0-pre (<http://nodejs.org/>) and Npm (<http://npmjs.org/>)
 
 ### Get CoffeeApp:
 
@@ -81,8 +81,11 @@ using help command:
     http://github.com/andrzejsliwa/coffeeapp
 
     help             show this message
-    cgenerate        [ view | list | show | filter ] generate coffee-script versions of files (instead of standard 'generate')
-    destroy          [ view | list | show | filter ] destroy (remove directory/files).
+    cgenerate        [ view | list | show | filter ] generate .coffee versions
+    destroy          [ view | list | show | filter ] destroy (remove directory/files also .js files).
+    prepare          prepare (.gitignore...)
+    clean            remove .releases directory
+
 
 ### Description
 
