@@ -21,7 +21,8 @@
 {existsSync, join, extname} = require 'path'
 {mkdirSync, readdirSync, writeFileSync, readFileSync, statSync} = require 'fs'
 {compile} = require 'coffee-script'
-{spawn}  = require 'child_process'
+{exec}  = require 'child_process'
+{print, gets} = require 'util'
 {log} = console
 
 #### Command wrapping configuration.
@@ -48,11 +49,30 @@ commandWraps = [
     type: 'before',
     desc: '  [ view | list | show | filter ] destroy (remove directory/files).',
     callback: -> destroy()
+  },
+  {
+    name: 'prepare',
+    type: 'before',
+    desc: '  prepare',
+    callback: -> prepare()
+  },
+  {
+    name: 'clean',
+    type: 'before',
+    desc: '  remove .releases directory'
+    callback: -> clean()
   }
-
 ]
 
 #### File templates
+
+# .gitignore
+gitIgnore = '''
+.DS_Store
+.couchapprc
+.releases/*
+.releases/**/*
+'''
 
 # map function
 mapCoffee = '''
@@ -88,7 +108,7 @@ filterCoffee = '''
 
 showGreatings = ->
 # Shows greatings ...
-  log 'CoffeeApp (v1.0.3) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  log 'CoffeeApp (v1.0.4) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
   log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 
@@ -125,7 +145,7 @@ processRecursive = (currentDir, destination) ->
     if statSync(filePath).isDirectory()
       unless fileName[0] == '.'
         mkdirSync destFilePath, 0700
-        isError = true if processRecursive filePath, destination
+        isError = true unless processRecursive filePath, destination
     else
       # if it's coffee-script file and isn't in _attachments (to using it on client side.)
       if extname(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
@@ -157,11 +177,10 @@ grindCoffee = ->
     log "initialize #{releasesDir} directory"
     mkdirSync releasesDir, 0700
   releasePath = join releasesDir, getTimestamp()
-  log "preparing #{releasePath} release..."
+  log "preparing #{releasePath} release:"
   mkdirSync releasePath, 0700
   if processRecursive '.', releasePath
     process.chdir releasePath
-    log "done."
     exec 'couchapp push', printOutput
     process.cwd()
 
@@ -196,7 +215,7 @@ operateOn = (command) ->
   unless name
     log 'missing name of element'
     return
-  log "Running CoffeeApp #{command} of #{generator} - '#{name}'..."
+  print "Running #{generator} #{command}: "
   fun = switch generator
     when 'view'
       handleView
@@ -229,6 +248,7 @@ handleView = (method, name) ->
         true
     when 'destroy'
       if existsSync viewDirPath
+        log "'#{viewDirPath}'."
         exec "rm -r #{viewDirPath}", printOutput
         true
       else
@@ -245,17 +265,19 @@ handleFile = (method, folder, template, name) ->
     when 'generate'
       unless existsSync folder
         mkdirSync folder, 0700
-      generateFile filePath, template
+      generateFile filePathCoffee, template
       true
     when 'destroy'
-      if existsSync filePath
-        exec "rm #{filePath}", printOutput
+      if existsSync filePathCoffee
+        log "'#{filePathCoffee}'."
+        exec "rm #{filePathCoffee}", printOutput
         true
       else if existsSync filePathJS
+        log "'#{filePathJS}'."
         exec "rm #{filePathJS}", printOutput
         true
       else
-        log "there is no '#{name}' ('#{filePath}') !!!"
+        log "there is no '#{name}' ('#{filePathJS}' or '#{filePathCoffee}') !!!"
         false
     else
       throw 'unknown method'
@@ -264,6 +286,18 @@ handleFile = (method, folder, template, name) ->
 handleShow = (method, name) -> handleFile(method, 'shows', showCoffee, name)
 handleList = (method, name) -> handleFile(method, 'lists', listCoffee, name)
 handleFilter = (method, name) -> handleFile(method, 'filters', filterCoffee, name)
+
+# make clean up
+clean = ->
+  log "cleaning up:"
+  exec 'rm -r .releases'
+  log "done."
+
+# prepare project
+prepare = ->
+  log "preparing project:"
+  generateFile '.gitignore', gitIgnore
+  log "done."
 
 # Handle wrapping
 handleCommand = (type) ->
