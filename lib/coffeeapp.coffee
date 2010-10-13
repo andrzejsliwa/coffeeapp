@@ -21,7 +21,7 @@
 {existsSync, join, extname} = require 'path'
 {mkdirSync, readdirSync, writeFileSync, readFileSync, statSync} = require 'fs'
 {compile} = require 'coffee-script'
-{exec}  = require 'child_process'
+{spawn}  = require 'child_process'
 {log} = console
 
 #### Command wrapping configuration.
@@ -88,7 +88,7 @@ filterCoffee = '''
 
 showGreatings = ->
 # Shows greatings ...
-  log 'CoffeeApp (v1.0.2) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  log 'CoffeeApp (v1.0.3) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
   log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 
@@ -138,7 +138,7 @@ processRecursive = (currentDir, destination) ->
           isError = true
       # if it's other files
       else
-        exec "cp #{filePath} #{destFilePath}", printOutput
+        writeFileSync destFilePath, readFileSync(filePath, 'binary'), 'binary'
   !isError
 
 
