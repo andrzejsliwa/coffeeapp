@@ -108,7 +108,7 @@ filterCoffee = '''
 
 showGreatings = ->
 # Shows greatings ...
-  log 'CoffeeApp (v1.0.4) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  log 'CoffeeApp (v1.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
   log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 
@@ -147,8 +147,8 @@ processRecursive = (currentDir, destination) ->
         mkdirSync destFilePath, 0700
         isError = true unless processRecursive filePath, destination
     else
-      # if it's coffee-script file and isn't in _attachments (to using it on client side.)
-      if extname(filePath) == '.coffee' and filePath.indexOf('_attachments') == -1
+      # if it's coffee-script file
+      if extname(filePath) == '.coffee'
         log " * processing #{filePath}..."
         try
           writeFileSync destFilePath.replace(/\.coffee$/, '.js'),
@@ -290,6 +290,7 @@ handleFilter = (method, name) -> handleFile(method, 'filters', filterCoffee, nam
 # make clean up
 clean = ->
   log "cleaning up:"
+  log " * remove '.releases' ..."
   exec 'rm -r .releases'
   log "done."
 

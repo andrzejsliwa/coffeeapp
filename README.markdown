@@ -67,7 +67,29 @@ using coffee generators
      * creating myview/reduce.coffee...
     done.
 
-using help command:
+using *prepare* command:
+
+    $ coffeeapp prepare
+    CoffeeApp (v1.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    http://github.com/andrzejsliwa/coffeeapp
+
+    preparing project:
+     * creating .gitignore...
+    done.
+
+using *clean* command:
+
+    $ coffeeapp clean
+    The 'sys' module is now called 'util'. It should have a similar interface.
+    CoffeeApp (v1.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    http://github.com/andrzejsliwa/coffeeapp
+
+    cleaning up:
+    * remove '.releases' ...
+    done.
+
+
+using *help* command:
 
     $ coffeeapp help
 
