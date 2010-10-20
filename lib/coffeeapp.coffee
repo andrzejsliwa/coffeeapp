@@ -106,9 +106,12 @@ filterCoffee = '''
 
 #### Helper Methods
 
+getVersion = ->
+  readFileSync(join(__dirname, '..', 'package.json')).toString().match(/"version"\s*:\s*"([\d.]+)"/)[1]
+
 showGreatings = ->
 # Shows greatings ...
-  log 'CoffeeApp (v1.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)'
+  log "CoffeeApp (#{getVersion()}) - simple coffee-script wrapper for CouchApp (http://couchapp.org)"
   log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
 
@@ -311,13 +314,14 @@ handleCommand = (type) ->
 
 
 #### Well, let's dance baby
-showGreatings()
-unless handleCommand('before')
-  # convert options back to string
-  options = process.argv.join(' ')
-  log "Calling couchapp"
-  # execute couchapp command
-  exec "couchapp #{options}", (error, stdout, stderr) ->
-    printOutput(error, stdout, stderr)
-    handleCommand('after')
+exports.run = ->
+  showGreatings()
+  unless handleCommand('before')
+    # convert options back to string
+    options = process.argv.join(' ')
+    log "Calling couchapp"
+    # execute couchapp command
+    exec "couchapp #{options}", (error, stdout, stderr) ->
+      printOutput(error, stdout, stderr)
+      handleCommand('after')
 
