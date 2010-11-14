@@ -183,8 +183,9 @@ grindCoffee = ->
   log "preparing #{releasePath} release:"
   mkdirSync releasePath, 0700
   if processRecursive '.', releasePath
-    process.chdir releasePath
-    exec 'couchapp push', printOutput
+    [options..., database] = process.argv[1..]
+    options = (options || []).join ' '
+    exec "couchapp push #{options} #{releasePath} #{database}", printOutput
     process.cwd()
 
 # Shows available options.
