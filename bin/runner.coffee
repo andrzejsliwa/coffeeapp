@@ -15,12 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 {join, dirname} = require 'path'
 {realpathSync} = require 'fs'
 
 # locate lib directory
-lib = join dirname(realpathSync(__filename)), '../lib'
+lib = join dirname(realpathSync(__filename.replace ' (compiled)', '')), '../lib'
 # load main file and run
 require("#{lib}/coffeeapp.coffee").run()
 
