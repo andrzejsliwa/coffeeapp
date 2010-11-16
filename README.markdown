@@ -125,3 +125,8 @@ are converted on the fly to java-script (.js) files.
 ### Author
 
 Andrzej Sliwa, andrzej.sliwa@i-tool.eu
+
+
+### Contributors
+
+Josh Bohde, josh.bohde@gmail.com
