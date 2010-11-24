@@ -1,5 +1,5 @@
 { "name" : "coffeeapp"
-, "version" : "1.0.8"
+, "version" : "1.0.9"
 , "author" : "Andrzej Sliwa <andrzej.sliwa@i-tool.eu> (http://andrzejsliwa.com)"
 , "description": "CoffeeApp wrapper (handling coffee-script) for CouchApp (http://couchapp.org/)."
 , "main" : "./lib/coffeeapp.coffee"
