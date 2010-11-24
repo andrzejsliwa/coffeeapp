@@ -185,7 +185,9 @@ grindCoffee = ->
   if processRecursive '.', releasePath
     [options..., database] = process.argv[1..]
     options = (options || []).join ' '
-    exec "couchapp push #{options} #{releasePath} #{database}", printOutput
+    process.chdir releasePath
+    database = "" if database == undefined
+    exec "couchapp push #{options} #{database}", printOutput
     process.cwd()
 
 # Shows available options.
