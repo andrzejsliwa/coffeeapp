@@ -155,7 +155,7 @@ processRecursive = (currentDir, destination) ->
         log " * processing #{filePath}..."
         try
           writeFileSync destFilePath.replace(/\.coffee$/, '.js'),
-            compile(readFileSync(filePath, 'utf8'), noWrap: yes).replace(/^\(/,'').replace(/\);$/, ''), 'utf8'
+            compile(readFileSync(filePath, 'utf8'), bare: yes), 'utf8'
         catch error
           log "Compilation Error: #{error.message}\n"
           isError = true

@@ -1,10 +1,10 @@
 { "name" : "coffeeapp"
-, "version" : "1.0.7"
+, "version" : "1.0.8"
 , "author" : "Andrzej Sliwa <andrzej.sliwa@i-tool.eu> (http://andrzejsliwa.com)"
 , "description": "CoffeeApp wrapper (handling coffee-script) for CouchApp (http://couchapp.org/)."
 , "main" : "./lib/coffeeapp.coffee"
 , "bin" : { "coffeeapp" : "./bin/runner.coffee" }
-, "dependencies": { "coffee-script" : "0.9.4" }
+, "dependencies": { "coffee-script" : "0.9.5" }
 , "repository": {
     "type": "git",
     "url": "git://github.com/andrzejsliwa/coffeeapp.git"
