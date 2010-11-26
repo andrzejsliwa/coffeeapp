@@ -4,7 +4,10 @@
 , "description": "CoffeeApp wrapper (handling coffee-script) for CouchApp (http://couchapp.org/)."
 , "main" : "./lib/coffeeapp.coffee"
 , "bin" : { "coffeeapp" : "./bin/runner.coffee" }
-, "dependencies": { "coffee-script" : "0.9.5" }
+, "dependencies": {
+    "coffee-script" : "0.9.5",
+    "underscore" : "1.1.2"
+  }
 , "repository": {
     "type": "git",
     "url": "git://github.com/andrzejsliwa/coffeeapp.git"

@@ -19,11 +19,14 @@
 
 # fast way to imports using pattern matching
 {existsSync, join, extname} = require 'path'
-{mkdirSync, readdirSync, writeFileSync, readFileSync, statSync} = require 'fs'
+{mkdirSync, readdirSync, writeFileSync, readFileSync, statSync, symlinkSync, unlinkSync} = require 'fs'
 {compile} = require 'coffee-script'
-{exec}  = require 'child_process'
+{exec, spawn}  = require 'child_process'
 {print, gets} = require 'util'
 {log} = console
+{_} = require 'underscore'
+
+
 
 #### Command wrapping configuration.
 commandWraps = [
@@ -60,6 +63,12 @@ commandWraps = [
     name: 'clean',
     type: 'before',
     desc: '    remove .releases directory'
+    callback: -> clean()
+  },
+  {
+    name: 'restore',
+    type: 'before',
+    desc: '  restore database from .dumps/last'
     callback: -> clean()
   }
 ]
@@ -128,30 +137,63 @@ getTimestamp = ->
   padTwo(date.getMinutes() + 1) + padTwo(date.getSeconds() + 1)
 
 # Display outputs if presents
-printOutput = (error, stdout, stderr) ->
-  log stdout if stdout && stdout.length > 0
-  log stderr if stderr && stderr.length > 0
-  if error != null
-    log "exec error: #{error}"
+handleOutput = (callbackOk, callbackError) ->
+  (error, stdout, stderr) ->
+    if error != null
+      if callbackError != null
+        callbackError()
+      else
+        log stderr if stderr && stderr.length > 0
+        log "exec error: #{error}"
+    else
+      if callbackOk != null
+        callbackOk()
+      else
+        log stdout if stdout && stdout.length > 0
+
+getConfig = () ->
+  JSON.parse readFileSync '.couchapprc', 'utf8'
+
+getDirectories = (currentDir, ignores) ->
+  callback = (name) ->
+    statSync(join currentDir, name).isDirectory()
+  filterDirectory currentDir, callback, ignores
+
+getFiles = (currentDir, ignores) ->
+  callback = (name) ->
+    !statSync(join currentDir, name).isDirectory()
+  filterDirectory currentDir, callback, ignores
+
+filterDirectory = (currentDir, callback, ignores) ->
+  list = readdirSync currentDir
+  if ignores
+    list = _.without(list, ignores...)
+  results = _.filter list, callback
 
 #### Main Methods
 
-# Process directory recursivly, normal files
+# Process directory "recursivly", normal files
 # are copied, directories are recreated and .coffee
 # files are "compiled" to javascript
-processRecursive = (currentDir, destination) ->
-  fileList = readdirSync currentDir
+processDirectory = (baseDir, destination) ->
+  dirs = [baseDir]
   isError = false
-  for fileName in fileList
-    filePath = join currentDir, fileName
-    destFilePath = join destination, filePath
-    if statSync(filePath).isDirectory()
-      unless fileName[0] == '.'
-        mkdirSync destFilePath, 0700
-        isError = true unless processRecursive filePath, destination
-    else
-      # if it's coffee-script file
-      if extname(filePath) == '.coffee'
+  while (dirs.length > 0)
+    currentDir = dirs.pop()
+    subDirs = getDirectories currentDir, ['.git', '.releases', '.dumps']
+
+    _.each subDirs, (dirName) ->
+      dirPath = join currentDir, dirName
+      dirs.push dirPath
+      destDirPath = join destination, join dirPath
+      mkdirSync destDirPath, 0700
+
+
+    files = getFiles currentDir
+    _.each files, (fileName) ->
+      filePath = join currentDir, fileName
+      destFilePath = join destination, filePath
+      if extname(filePath) == ".coffee"
         log " * processing #{filePath}..."
         try
           writeFileSync destFilePath.replace(/\.coffee$/, '.js'),
@@ -159,12 +201,9 @@ processRecursive = (currentDir, destination) ->
         catch error
           log "Compilation Error: #{error.message}\n"
           isError = true
-      # if it's other files
       else
         writeFileSync destFilePath, readFileSync(filePath, 'binary'), 'binary'
   !isError
-
-
 
 #### Grinding of coffee
 
@@ -175,26 +214,49 @@ processRecursive = (currentDir, destination) ->
 # deploy directory.
 grindCoffee = ->
   log "Wrapping 'push' of couchapp"
+  timestamp = getTimestamp()
   releasesDir = '.releases'
   unless existsSync releasesDir
     log "initialize #{releasesDir} directory"
     mkdirSync releasesDir, 0700
-  releasePath = join releasesDir, getTimestamp()
-  log "preparing #{releasePath} release:"
-  mkdirSync releasePath, 0700
-  if processRecursive '.', releasePath
-    [options..., database] = process.argv[1..]
-    options = (options || []).join ' '
-    process.chdir releasePath
-    database = "" if database == undefined
-    exec "couchapp push #{options} #{database}", printOutput
-    process.cwd()
+  releasePath = join releasesDir, timestamp
+
+  dumpsDir = '.dumps'
+  unless existsSync dumpsDir
+    log "initialize #{dumpsDir} directory"
+    mkdirSync dumpsDir, 0700
+  dumpsPath = join dumpsDir, timestamp
+
+  [options..., database] = process.argv[1..]
+  options = (options || []).join ' '
+  database = "default" if database != null
+
+  processCallback = () ->
+    log "preparing release: #{releasePath}"
+    mkdirSync releasePath, 0700
+    if processDirectory '.', releasePath
+      process.chdir releasePath
+      exec "couchapp push #{options} #{database}", handleOutput process.cwd
+
+  config = getConfig()
+  if config['make_dumps']
+    log "making dump: #{dumpsPath}"
+    url = config['env'][database]['db']
+    exec "couchdb-dump #{url} > #{dumpsPath}", handleOutput () ->
+      lastPath = join dumpsDir, 'last'
+      unlinkSync lastPath if existsSync lastPath
+      symlinkSync timestamp, "#{lastPath}"
+      processCallback()
+
+
+
+
 
 # Shows available options.
 help = ->
   log "Wrapping 'help' of couchapp\n"
   showGreatings()
-  for command in commandWraps
+  _.each commandWraps, (command) ->
     if command.desc
       log "#{command.name}        #{command.desc}"
 
@@ -232,7 +294,7 @@ operateOn = (command) ->
     when 'filter'
       handleFilter
     else
-      (_, _) -> log "unknown #{command}"
+      (method, name) -> log "unknown #{command}"
   log 'done.' if fun(command, name)
 
 # handling view generate/destroy
@@ -255,7 +317,7 @@ handleView = (method, name) ->
     when 'destroy'
       if existsSync viewDirPath
         log "'#{viewDirPath}'."
-        exec "rm -r #{viewDirPath}", printOutput
+        exec "rm -r #{viewDirPath}", handleOutput()
         true
       else
         log "there is no view '#{name}' ('#{viewDirPath}') !!!"
@@ -276,11 +338,11 @@ handleFile = (method, folder, template, name) ->
     when 'destroy'
       if existsSync filePathCoffee
         log "'#{filePathCoffee}'."
-        exec "rm #{filePathCoffee}", printOutput
+        exec "rm #{filePathCoffee}", handleOutput()
         true
       else if existsSync filePathJS
         log "'#{filePathJS}'."
-        exec "rm #{filePathJS}", printOutput
+        exec "rm #{filePathJS}", handleOutput()
         true
       else
         log "there is no '#{name}' ('#{filePathJS}' or '#{filePathCoffee}') !!!"
@@ -309,22 +371,43 @@ prepare = ->
 # Handle wrapping
 handleCommand = (type) ->
   handled = false
-  for cmd in commandWraps
+  _.each commandWraps, (cmd) ->
     if cmd.type == type && cmd.name == process.argv[0]
       handled = true
       cmd.callback()
   handled
 
+missingPythonDeps = (commandName, packageName) ->
+  log " * missing #{commandName} !"
+  log "   try... pip install #{packageName}"
+  log "   or...  easy_install install #{packageName}"
+  process.exit -1
 
 #### Well, let's dance baby
 exports.run = ->
   showGreatings()
-  unless handleCommand('before')
-    # convert options back to string
-    options = process.argv.join(' ')
-    log "Calling couchapp"
-    # execute couchapp command
-    exec "couchapp #{options}", (error, stdout, stderr) ->
-      printOutput(error, stdout, stderr)
-      handleCommand('after')
+
+  ok_callback = () ->
+    unless handleCommand 'before'
+      # convert options back to string
+      options = process.argv.join ' '
+      log "Calling couchapp"
+      # execute couchapp command
+      exec "couchapp #{options}", handleOutput () ->
+        handleCommand 'after'
+
+  exec 'couchdb-dump --version', handleOutput(() ->
+    exec 'couchapp --version', handleOutput(ok_callback, () ->
+      missingPythonDeps("couchapp", "couchapp")
+    )
+  ,
+  () ->
+    missingPythonDeps "couchdb-dump", "couchdb"
+  )
+
+
+
+
+
+
 
