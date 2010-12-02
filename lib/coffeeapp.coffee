@@ -260,6 +260,8 @@ grindCoffee = ->
       log " * linking dump: #{dumpsPath} -> #{lastPath}"
       symlinkSync timestamp, "#{lastPath}"
       processCallback()
+  else
+    processCallback()
 
 processOptions = ->
   [options..., database] = process.argv[1..]
