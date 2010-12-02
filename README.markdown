@@ -29,7 +29,7 @@ without compilation errors:
 
     $ coffeeapp push
 
-    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.1.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     Wrapping 'push' of couchapp
@@ -43,14 +43,14 @@ without compilation errors:
 with errors, all generated files have in content '...' which should be replaced by real code - this helps to keep clean project ;) :
 
     $ coffeeapp push
-
-    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (1.1.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     Wrapping 'push' of couchapp
-    preparing .releases/20101008202459 release...
-     * processing filters/filter.coffee...
-
+    Database : 'default'
+    making dump: .dumps/default/20101202172115
+     * linking dump: .dumps/default/20101202172115 -> .dumps/default/last
+    preparing release: .releases/20101202172115
      * processing views/coffewview/reduce.coffee...
     Compilation Error: Parse error on line 1: Unexpected '.'
 
@@ -59,7 +59,7 @@ using coffee generators
 
     $ coffeeapp cgenerate view myview
 
-    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.1.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     Running CoffeeApp 'view' generator...
@@ -70,7 +70,7 @@ using coffee generators
 using *prepare* command:
 
     $ coffeeapp prepare
-    CoffeeApp (v1.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (v1.1.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     preparing project:
@@ -80,12 +80,19 @@ using *prepare* command:
 using *clean* command:
 
     $ coffeeapp clean
-    The 'sys' module is now called 'util'. It should have a similar interface.
     CoffeeApp (v1.0.5) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
     cleaning up:
-    * remove '.releases' ...
+     * remove '.releases' ...
+    done.
+
+using *restore* - available only when using make_dumps in .couchapprc
+
+    CoffeeApp (1.1.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    http://github.com/andrzejsliwa/coffeeapp
+
+     * restoring dump from .dumps/default/last to database:
     done.
 
 
@@ -97,16 +104,42 @@ using *help* command:
     CouchApp Help here ...
     ...
 
-    Wrapping 'help' of couchapp
-
-    CoffeeApp (v1.0.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
+    CoffeeApp (1.1.0) - simple coffee-script wrapper for CouchApp (http://couchapp.org)
     http://github.com/andrzejsliwa/coffeeapp
 
-    help             show this message
-    cgenerate        [ view | list | show | filter ] generate .coffee versions
-    destroy          [ view | list | show | filter ] destroy (remove directory/files also .js files).
-    prepare          prepare (.gitignore...)
-    clean            remove .releases directory
+    Usage: coffeeapp [OPTIONS] [CMD] [CMDOPTIONS] [ARGS,...]
+
+    Commands:
+            help      [OPTIONS]...
+                      show this message
+
+            cgenerate [OPTIONS]...
+                      [ view | list | show | filter ] generate .coffee versions
+
+            destroy   [OPTIONS]...
+                      [ view | list | show | filter ] destroy (remove directory/files also .js files).
+
+            prepare   [OPTIONS]...
+                      prepare (.gitignore...)
+
+            clean     [OPTIONS]...
+                      remove .releases & .dumps directories
+
+            restore   [OPTIONS]...
+                      restore database from .dumps/last
+
+
+using *make_dump* option in .couchapprc
+
+    {
+      "env" : {
+        "default" : {
+          "db" : "http://127.0.0.1:5984/krotco",
+          "make_dumps": true
+        }
+      }
+    }
+
 
 
 ### Description

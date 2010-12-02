@@ -26,7 +26,8 @@
 {log} = console
 {_} = require 'underscore'
 
-
+dumps_folder_name = '.dumps'
+releases_folder_name = '.releases'
 
 #### Command wrapping configuration.
 commandWraps = [
@@ -38,7 +39,7 @@ commandWraps = [
   {
     name: 'help',
     type: 'after',
-    desc: '     show this message',
+    desc: 'show this message',
     callback: -> help()
   },
   {
@@ -50,38 +51,40 @@ commandWraps = [
   {
     name: 'destroy',
     type: 'before',
-    desc: '  [ view | list | show | filter ] destroy (remove directory/files also .js files).',
+    desc: '[ view | list | show | filter ] destroy (remove directory/files also .js files).',
     callback: -> destroy()
   },
   {
     name: 'prepare',
     type: 'before',
-    desc: '  prepare (.gitignore...)',
+    desc: 'prepare (.gitignore...)',
     callback: -> prepare()
   },
   {
     name: 'clean',
     type: 'before',
-    desc: '    remove .releases directory'
+    desc: "remove #{releases_folder_name} & #{dumps_folder_name} directories"
     callback: -> clean()
   },
   {
     name: 'restore',
     type: 'before',
-    desc: '  restore database from .dumps/last'
-    callback: -> clean()
+    desc: "restore database from #{dumps_folder_name}/last"
+    callback: -> restore()
   }
 ]
 
 #### File templates
 
 # .gitignore
-gitIgnore = '''
+gitIgnore = """
 .DS_Store
 .couchapprc
-.releases/*
-.releases/**/*
-'''
+#{dumps_folder_name}/*
+#{dumps_folder_name}/**/*
+#{releases_folder_name}/*
+#{releases_folder_name}/**/*
+"""
 
 # map function
 mapCoffee = '''
@@ -123,6 +126,13 @@ showGreatings = ->
   log "CoffeeApp (#{getVersion()}) - simple coffee-script wrapper for CouchApp (http://couchapp.org)"
   log 'http://github.com/andrzejsliwa/coffeeapp\n'
 
+spaces = (string, max) ->
+  count = max - string.length
+  result = ""
+  while count > 0
+    result += " "
+    count--
+  result
 
 # Zero padding for format '0x'
 padTwo = (number) ->
@@ -140,18 +150,18 @@ getTimestamp = ->
 handleOutput = (callbackOk, callbackError) ->
   (error, stdout, stderr) ->
     if error != null
-      if callbackError != null
+      if callbackError != undefined
         callbackError()
       else
         log stderr if stderr && stderr.length > 0
         log "exec error: #{error}"
     else
-      if callbackOk != null
+      log stdout if stdout && stdout.length > 0
+      if callbackOk != undefined
         callbackOk()
-      else
-        log stdout if stdout && stdout.length > 0
 
-getConfig = () ->
+
+getConfig = ->
   JSON.parse readFileSync '.couchapprc', 'utf8'
 
 getDirectories = (currentDir, ignores) ->
@@ -180,7 +190,7 @@ processDirectory = (baseDir, destination) ->
   isError = false
   while (dirs.length > 0)
     currentDir = dirs.pop()
-    subDirs = getDirectories currentDir, ['.git', '.releases', '.dumps']
+    subDirs = getDirectories currentDir, ['.git', releases_folder_name, dumps_folder_name]
 
     _.each subDirs, (dirName) ->
       dirPath = join currentDir, dirName
@@ -215,23 +225,16 @@ processDirectory = (baseDir, destination) ->
 grindCoffee = ->
   log "Wrapping 'push' of couchapp"
   timestamp = getTimestamp()
-  releasesDir = '.releases'
+  releasesDir = releases_folder_name
   unless existsSync releasesDir
     log "initialize #{releasesDir} directory"
     mkdirSync releasesDir, 0700
   releasePath = join releasesDir, timestamp
 
-  dumpsDir = '.dumps'
-  unless existsSync dumpsDir
-    log "initialize #{dumpsDir} directory"
-    mkdirSync dumpsDir, 0700
-  dumpsPath = join dumpsDir, timestamp
+  [options, database] = processOptions()
 
-  [options..., database] = process.argv[1..]
-  options = (options || []).join ' '
-  database = "default" if database != null
-
-  processCallback = () ->
+  log "\ndatabase : '#{database}'\n"
+  processCallback = ->
     log "preparing release: #{releasePath}"
     mkdirSync releasePath, 0700
     if processDirectory '.', releasePath
@@ -239,26 +242,46 @@ grindCoffee = ->
       exec "couchapp push #{options} #{database}", handleOutput process.cwd
 
   config = getConfig()
-  if config['make_dumps']
+  if config['env'][database]['make_dumps']
+    dumpsDir = join dumps_folder_name, database
+    unless existsSync dumps_folder_name
+      log "initialize #{dumps_folder_name} directory"
+      mkdirSync dumps_folder_name, 0700
+    unless existsSync dumpsDir
+      log "initialize #{dumpsDir} directory"
+      mkdirSync dumpsDir, 0700
+    dumpsPath = join dumpsDir, timestamp
+
     log "making dump: #{dumpsPath}"
     url = config['env'][database]['db']
-    exec "couchdb-dump #{url} > #{dumpsPath}", handleOutput () ->
+    exec "couchdb-dump #{url} > #{dumpsPath}", handleOutput ->
       lastPath = join dumpsDir, 'last'
       unlinkSync lastPath if existsSync lastPath
+      log " * linking dump: #{dumpsPath} -> #{lastPath}"
       symlinkSync timestamp, "#{lastPath}"
       processCallback()
 
-
-
-
+processOptions = ->
+  [options..., database] = process.argv[1..]
+  options = (options || []).join ' '
+  database = "default" if database != null
+  return [options, database]
 
 # Shows available options.
 help = ->
   log "Wrapping 'help' of couchapp\n"
   showGreatings()
+
+  usage = '''
+Usage: coffeeapp [OPTIONS] [CMD] [CMDOPTIONS] [ARGS,...]
+
+Commands:
+'''
+  log usage
   _.each commandWraps, (command) ->
     if command.desc
-      log "#{command.name}        #{command.desc}"
+      log "        #{command.name}#{spaces(command.name, 9)} [OPTIONS]..."
+      log "                  #{command.desc}\n"
 
 # generate file from template verbosly
 generateFile = (path, template) ->
@@ -283,7 +306,7 @@ operateOn = (command) ->
   unless name
     log 'missing name of element'
     return
-  print "Running #{generator} #{command}: "
+  print "Running #{generator} #{command}:\n"
   fun = switch generator
     when 'view'
       handleView
@@ -358,9 +381,15 @@ handleFilter = (method, name) -> handleFile(method, 'filters', filterCoffee, nam
 # make clean up
 clean = ->
   log "cleaning up:"
-  log " * remove '.releases' ..."
-  exec 'rm -r .releases'
-  log "done."
+  log " * remove '#{releases_folder_name}' ..."
+  exec "rm -r #{releases_folder_name}", handleOutput ->
+    log " * remove '#{dumps_folder_name}' ..."
+    exec "rm -r #{dumps_folder_name}", handleOutput ->
+      log "done."
+    , ->
+      log "there is no '#{dumps_folder_name}' directory!"
+  , ->
+    log "there is no '#{releases_folder_name}' directory!"
 
 # prepare project
 prepare = ->
@@ -368,11 +397,28 @@ prepare = ->
   generateFile '.gitignore', gitIgnore
   log "done."
 
+
+restore = ->
+  [options, database] = processOptions()
+  config = getConfig()
+  lastPath = join dumps_folder_name, database, 'last'
+  if config['env'][database]['make_dumps']
+    log "restoring dump from #{lastPath} to database: #{}"
+    url = config['env'][database]['db']
+    exec "couchdb-load #{url} --input #{lastPath}", handleOutput ->
+      log "done."
+    , ->
+      log "please recreate database... there is document conflict!"
+  else
+    log "you don't using dumps for this database... look in couchapprc for make_dumps."
+
 # Handle wrapping
 handleCommand = (type) ->
   handled = false
+  name = process.argv[0]
+  name = "help" if name == undefined
   _.each commandWraps, (cmd) ->
-    if cmd.type == type && cmd.name == process.argv[0]
+    if cmd.type == type && cmd.name == name
       handled = true
       cmd.callback()
   handled
@@ -387,23 +433,19 @@ missingPythonDeps = (commandName, packageName) ->
 exports.run = ->
   showGreatings()
 
-  ok_callback = () ->
+  ok_callback = ->
     unless handleCommand 'before'
       # convert options back to string
       options = process.argv.join ' '
-      log "Calling couchapp"
       # execute couchapp command
-      exec "couchapp #{options}", handleOutput () ->
+      exec "couchapp #{options}", handleOutput ->
         handleCommand 'after'
 
-  exec 'couchdb-dump --version', handleOutput(() ->
-    exec 'couchapp --version', handleOutput(ok_callback, () ->
+  exec 'couchdb-dump --version > /dev/null', handleOutput ->
+    exec 'couchapp --version > /dev/null', handleOutput ok_callback, ->
       missingPythonDeps("couchapp", "couchapp")
-    )
-  ,
-  () ->
+  , ->
     missingPythonDeps "couchdb-dump", "couchdb"
-  )
 
 
 
