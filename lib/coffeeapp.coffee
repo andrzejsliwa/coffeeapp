@@ -441,9 +441,14 @@ exports.run = ->
       exec "couchapp #{options}", handleOutput ->
         handleCommand 'after'
 
-  exec 'couchdb-dump --version > /dev/null', handleOutput ->
-    exec 'couchapp --version > /dev/null', handleOutput ok_callback, ->
-      missingPythonDeps("couchapp", "couchapp")
+  exec 'couchapp --version > /dev/null', handleOutput ->
+    config = getConfig()
+    [options, database] = processOptions()
+    if config['env'][database]['make_dumps']
+      exec 'couchdb-dump --version > /dev/null', handleOutput ok_callback, ->
+        missingPythonDeps("couchapp", "couchapp")
+    else
+      ok_callback()
   , ->
     missingPythonDeps "couchdb-dump", "couchdb"
 
