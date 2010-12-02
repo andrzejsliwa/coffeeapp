@@ -2,7 +2,12 @@
 
 ### Installing
 
-Prerequisites: requires Node.js ver. v0.3.0-pre (<http://nodejs.org/>) and Npm (<http://npmjs.org/>)
+Prerequisites:
+    CouchApp (pip install couchapp)
+    couchdb (pip install couchdb) - used for dump / restore
+    requires Node.js ver. v0.3.0-pre (<http://nodejs.org/>)
+    Npm (<http://npmjs.org/>)
+
 
 ### Get CoffeeApp:
 
