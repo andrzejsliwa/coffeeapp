@@ -23,8 +23,13 @@
 {compile} = require 'coffee-script'
 {exec, spawn}  = require 'child_process'
 {print, gets} = require 'util'
-{log} = console
 {_} = require 'underscore'
+{log} = console
+request = require 'request'
+
+headers =
+  accept: 'application/json',
+  'content-type': 'application/json'
 
 dumps_folder_name = '.dumps'
 releases_folder_name = '.releases'
@@ -85,6 +90,14 @@ gitIgnore = """
 #{releases_folder_name}/*
 #{releases_folder_name}/**/*
 """
+
+# .couchappignore
+couchAppIgnore = '''
+[
+  "spec",
+  "features"
+]
+'''
 
 # map function
 mapCoffee = '''
@@ -264,7 +277,7 @@ grindCoffee = ->
     processCallback()
 
 processOptions = ->
-  [options..., database] = process.argv[1..]
+  [options..., database] = process.argv[2..]
   options = (options || []).join ' '
   database = "default" if database != null
   return [options, database]
@@ -300,11 +313,11 @@ destroy = -> operateOn('destroy')
 
 # common handling for cgenerate/destroy
 operateOn = (command) ->
-  generator = process.argv[1]
+  generator = process.argv[2..][1]
   unless generator
     log "missing name of #{command} - [ view | list | show | filter ]"
     return
-  name = process.argv[2]
+  name = process.argv[2..][2]
   unless name
     log 'missing name of element'
     return
@@ -397,6 +410,7 @@ clean = ->
 prepare = ->
   log "preparing project:"
   generateFile '.gitignore', gitIgnore
+  generateFile '.couchappignore', couchAppIgnore
   log "done."
 
 
@@ -404,20 +418,23 @@ restore = ->
   [options, database] = processOptions()
   config = getConfig()
   lastPath = join dumps_folder_name, database, 'last'
+  unless existsSync lastPath
+    log "There is no dump!"
+    return
   if config['env'][database]['make_dumps']
     log "restoring dump from #{lastPath} to database: #{}"
     url = config['env'][database]['db']
+    request {uri: url, method:'DELETE'}
+    request {uri: url, method:'PUT'}
     exec "couchdb-load #{url} --input #{lastPath}", handleOutput ->
       log "done."
-    , ->
-      log "please recreate database... there is document conflict!"
   else
     log "you don't using dumps for this database... look in couchapprc for make_dumps."
 
 # Handle wrapping
 handleCommand = (type) ->
   handled = false
-  name = process.argv[0]
+  name = process.argv[2..][0]
   name = "help" if name == undefined
   _.each commandWraps, (cmd) ->
     if cmd.type == type && cmd.name == name
@@ -438,7 +455,7 @@ exports.run = ->
   ok_callback = ->
     unless handleCommand 'before'
       # convert options back to string
-      options = process.argv.join ' '
+      options = process.argv[2..].join ' '
       # execute couchapp command
       exec "couchapp #{options}", handleOutput ->
         handleCommand 'after'
