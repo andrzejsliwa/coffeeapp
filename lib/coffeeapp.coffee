@@ -424,8 +424,15 @@ restore = ->
   if config['env'][database]['make_dumps']
     log "restoring dump from #{lastPath} to database: #{}"
     url = config['env'][database]['db']
-    request {uri: url, method:'DELETE'}
-    request {uri: url, method:'PUT'}
+    request {uri: url, method: 'DELETE', headers: headers}, (error, response, body) ->
+      if response.statusCode == 200
+        request {uri: url, method: 'PUT', headers: headers}, (error, response, body) ->
+          unless response.statusCode == 200
+            message = JSON.parse(body)
+            log "Error: #{message.error} - #{message.reason}"
+      else
+        message = JSON.parse(body)
+        log "Error: #{message.error} - #{message.reason}"
     exec "couchdb-load #{url} --input #{lastPath}", handleOutput ->
       log "done."
   else

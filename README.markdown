@@ -5,7 +5,7 @@
 Prerequisites:
     CouchApp (pip install couchapp)
     couchdb (pip install couchdb) - used for dump / restore
-    requires Node.js ver. v0.3.0-pre (<http://nodejs.org/>)
+    requires Node.js (<http://nodejs.org/>) - tested on v0.2.6
     Npm (<http://npmjs.org/>)
 
 
