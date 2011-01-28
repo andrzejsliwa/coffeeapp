@@ -162,17 +162,12 @@ getTimestamp = ->
 # Display outputs if presents
 handleOutput = (callbackOk, callbackError) ->
   (error, stdout, stderr) ->
+    log(stdout) if stdout.length > 0
+    log(stderr) if stderr.length > 0
     if error != null
-      if callbackError != undefined
-        callbackError()
-      else
-        log stderr if stderr && stderr.length > 0
-        log "exec error: #{error}"
+      callbackError() if callbackError != undefined
     else
-      log stdout if stdout && stdout.length > 0
-      if callbackOk != undefined
-        callbackOk()
-
+      callbackOk() if callbackOk != undefined
 
 getConfig = ->
   JSON.parse readFileSync '.couchapprc', 'utf8'
@@ -246,13 +241,14 @@ grindCoffee = ->
 
   [options, database] = processOptions()
 
-  log "\ndatabase : '#{database}'\n"
+  log "database : '#{database}'"
   processCallback = ->
     log "preparing release: #{releasePath}"
     mkdirSync releasePath, 0700
     if processDirectory '.', releasePath
       process.chdir releasePath
-      exec "couchapp push #{options} #{database}", handleOutput process.cwd
+      exec "couchapp #{options} #{database}", handleOutput()
+      process.cwd
 
   config = getConfig()
   if config['env'][database]['make_dumps']
@@ -279,7 +275,10 @@ grindCoffee = ->
 processOptions = ->
   [options..., database] = process.argv[2..]
   options = (options || []).join ' '
-  database = "default" if database != null
+  database = "default" if database == undefined
+  if process.argv[2..].length == 1
+    options = database
+    database = "default"
   return [options, database]
 
 # Shows available options.
@@ -429,10 +428,12 @@ restore = ->
         request {uri: url, method: 'PUT', headers: headers}, (error, response, body) ->
           unless response.statusCode == 200
             message = JSON.parse(body)
-            log "Error: #{message.error} - #{message.reason}"
+            if message.error
+              log "Error: #{message.error} - #{message.reason}"
       else
         message = JSON.parse(body)
-        log "Error: #{message.error} - #{message.reason}"
+        if message.error
+          log "Error: #{message.error} - #{message.reason}"
     exec "couchdb-load #{url} --input #{lastPath}", handleOutput ->
       log "done."
   else
@@ -452,7 +453,7 @@ handleCommand = (type) ->
 missingPythonDeps = (commandName, packageName) ->
   log " * missing #{commandName} !"
   log "   try... pip install #{packageName}"
-  log "   or...  easy_install install #{packageName}"
+  log "   or...  easy_install #{packageName}"
   process.exit -1
 
 #### Well, let's dance baby
@@ -472,7 +473,7 @@ exports.run = ->
     [options, database] = processOptions()
     if config['env'][database]['make_dumps']
       exec 'couchdb-dump --version > /dev/null', handleOutput ok_callback, ->
-        missingPythonDeps("couchapp", "couchapp")
+        missingPythonDeps("couch-dump", "couchdb")
     else
       ok_callback()
   , ->
