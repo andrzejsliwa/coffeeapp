@@ -168,3 +168,4 @@ Andrzej Sliwa, andrzej.sliwa@i-tool.eu
 ### Contributors
 
 Josh Bohde, josh.bohde@gmail.com
+Szaby Grünwald, https://github.com/szabyg
