@@ -234,6 +234,7 @@ grindCoffee = ->
   config = getConfig()
   timestamp = getTimestamp()
   makeReleaseVersions = config['makeReleaseVersions'] isnt false
+  designdocName = config['designdocName'] or "app"
   releasesDir = releases_folder_name
   unless existsSync releasesDir
     log "initialize #{releasesDir} directory"
@@ -241,7 +242,7 @@ grindCoffee = ->
   if makeReleaseVersions
     releasePath = join releasesDir, timestamp
   else
-    releasePath = join releasesDir, config['designdocName']
+    releasePath = join releasesDir, designdocName
     log "Removing #{releasePath}"
     rmTreeSync releasePath
 

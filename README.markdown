@@ -145,7 +145,20 @@ using *make_dump* option in .couchapprc
       }
     }
 
+using *makeReleaseVersions* and *designdocName* options in `.couchapprc` for 
+controlling whether a unique release with a timestamp is pushed or an update 
+to a static design document. `designdocName` has the default value `"app"`.
 
+    {
+      "env" : {
+        "default" : {
+          "db" : "http://localhost:5984/default",
+          "make_dumps": false
+        }
+      },
+      "makeReleaseVersions": false,
+      "designdocName": "Proggis"
+    }
 
 ### Description
 
