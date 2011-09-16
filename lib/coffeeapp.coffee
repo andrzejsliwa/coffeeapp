@@ -233,11 +233,12 @@ grindCoffee = ->
   log "Wrapping 'push' of couchapp"
   config = getConfig()
   timestamp = getTimestamp()
+  makeReleaseVersions = config['makeReleaseVersions'] isnt false
   releasesDir = releases_folder_name
   unless existsSync releasesDir
     log "initialize #{releasesDir} directory"
     mkdirSync releasesDir, 0700
-  if config['makeReleaseVersions']
+  if makeReleaseVersions
     releasePath = join releasesDir, timestamp
   else
     releasePath = join releasesDir, config['designdocName']
