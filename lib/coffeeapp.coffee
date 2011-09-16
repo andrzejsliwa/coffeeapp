@@ -19,7 +19,7 @@
 
 # fast way to imports using pattern matching
 {existsSync, join, extname} = require 'path'
-{mkdirSync, readdirSync, writeFileSync, readFileSync, statSync, symlinkSync, unlinkSync} = require 'fs'
+{mkdirSync, rmdirSync, readdirSync, writeFileSync, readFileSync, statSync, symlinkSync, unlinkSync} = require 'fs'
 {compile} = require 'coffee-script'
 {exec, spawn}  = require 'child_process'
 {print, gets} = require 'util'
@@ -199,7 +199,6 @@ processDirectory = (baseDir, destination) ->
   while (dirs.length > 0)
     currentDir = dirs.pop()
     subDirs = getDirectories currentDir, ['.git', releases_folder_name, dumps_folder_name]
-
     _.each subDirs, (dirName) ->
       dirPath = join currentDir, dirName
       dirs.push dirPath
@@ -232,12 +231,19 @@ processDirectory = (baseDir, destination) ->
 # deploy directory.
 grindCoffee = ->
   log "Wrapping 'push' of couchapp"
+  config = getConfig()
   timestamp = getTimestamp()
+  makeReleaseVersions = config['makeReleaseVersions'] isnt false
   releasesDir = releases_folder_name
   unless existsSync releasesDir
     log "initialize #{releasesDir} directory"
     mkdirSync releasesDir, 0700
-  releasePath = join releasesDir, timestamp
+  if makeReleaseVersions
+    releasePath = join releasesDir, timestamp
+  else
+    releasePath = join releasesDir, config['designdocName']
+    log "Removing #{releasePath}"
+    rmTreeSync releasePath
 
   [options, database] = processOptions()
 
@@ -250,7 +256,6 @@ grindCoffee = ->
       exec "couchapp #{options} #{database}", handleOutput()
       process.cwd
 
-  config = getConfig()
   if config['env'][database]['make_dumps']
     dumpsDir = join dumps_folder_name, database
     unless existsSync dumps_folder_name
@@ -438,6 +443,21 @@ restore = ->
       log "done."
   else
     log "you don't using dumps for this database... look in couchapprc for make_dumps."
+
+rmTreeSync = (path) ->
+  return  unless existsSync(path)
+  files = readdirSync(path)
+  unless files.length
+    rmdirSync path
+    return
+  else
+    files.forEach (file) ->
+      fullName = join(path, file)
+      if statSync(fullName).isDirectory()
+        rmTreeSync fullName
+      else
+        unlinkSync fullName
+  rmdirSync path
 
 # Handle wrapping
 handleCommand = (type) ->
