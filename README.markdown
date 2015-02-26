@@ -1,5 +1,11 @@
 ### CoffeeApp -- coffee-script wrapper for CouchApp
 
+### DEPRECATED:
+this application is not needed any more, couchdb handling of coffeescript natively.
+
+### The Change Log
+(http://thechangelog.com/coffeeapp-coffee-script-wrapper-for-couchapp/)
+
 ### Installing
 
 Prerequisites:
